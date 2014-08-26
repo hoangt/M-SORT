@@ -57,42 +57,42 @@ void check_sort(int *lm_addr, int N)
 }
 
 //================================================================================================
-void test_sort4x4(int *x0, int *x1, int *x2, int *x3)				// TEST: sort 4x4 elements in parallel
+void test_sort4x4(int *out[], int *in[])				// TEST: sort 4x4 elements in parallel
 {
-		printf_ptr("sort4x4 input X_0: ", x0, 4);
-		printf_ptr("sort4x4 input X_1: ", x1, 4);
-		printf_ptr("sort4x4 input X_2: ", x2, 4);
-		printf_ptr("sort4x4 input X_3: ", x3, 4);
+		printf_ptr("sort4x4 input X_0: ", in[0], 4);
+		printf_ptr("sort4x4 input X_1: ", in[1], 4);
+		printf_ptr("sort4x4 input X_2: ", in[2], 4);
+		printf_ptr("sort4x4 input X_3: ", in[3], 4);
 
-		sort4x4(x0, x1, x2, x3);
+		sort4x4(out, in);
 
-		printf_ptr("sort4x4 output X_0:", x0, 4);
-		printf_ptr("sort4x4 output X_1:", x1, 4);
-		printf_ptr("sort4x4 output X_2:", x2, 4);
-		printf_ptr("sort4x4 output X_3:", x3, 4);
+		printf_ptr("sort4x4 output X_0:", out[0], 4);
+		printf_ptr("sort4x4 output X_1:", out[1], 4);
+		printf_ptr("sort4x4 output X_2:", out[2], 4);
+		printf_ptr("sort4x4 output X_3:", out[3], 4);
 }
 
 //================================================================================================
-void test_merge4(int *x, int *y)
+void test_merge2x4(int *x, int *y)
 {
 		printf_ptr("test_merge4 input X: ", x, 4);
 		printf_ptr("test_merge4 input Y: ", y, 4);
 
-		merge4(x, y);
+		merge2x4(x, y);
+
 		printf_ptr("test_merge4 output X:", x, 4);
 		printf_ptr("test_merge4 output Y:", y, 4);
 }
 
-
 //================================================================================================
-void test_bitonic_sort_2x8keys(int *in)
+void test_bisort2x8(int *in)
 {
     int i;
 
 		printf_ptr("bitonic_sort_16key, first 8 keys input: ", in,   8);
 		printf_ptr("bitonic_sort_16key, last  8 keys input: ", in+8, 8);
 
-    bitonic_sort_2x8keys(in, in);
+    bisort2x8(in, in);
 
 		printf_ptr("bitonic_sort_16key, first 8 keys output:", in,   8);
 		printf_ptr("bitonic_sort_16key, last  8 keys output:", in+8, 8);
@@ -100,24 +100,28 @@ void test_bitonic_sort_2x8keys(int *in)
 
 
 //================================================================================================
-void test_sort4(int *in)
+void test_sort1x4(int *in)
 {
 		printf_ptr("Sort4 input: ", in, 4);
-		sort4(in);
+
+		sort1x4(in);
+
 		printf_ptr("Sort4 output:", in, 4);
 }
 
 //================================================================================================
-void test_vsort16(int *in[], int N)
+void test_vsort16x4(int *out[], int *in[], int N)
 {
 	int i;
 	char msg[50];
 
 	for (i=0; i<N; i++) 
 	{
-		sprintf(msg, "vsort16 input  X_%d", i); printf_ptr(msg, in[i], 4);		
-		sort4(in[i]);
-		sprintf(msg, "vsort16 output X_%d", i); printf_ptr(msg, in[i], 4);
+		sprintf(msg, "vsort16x4 input  X_%d", i); printf_ptr(msg,  in[i], 4);		
+
+		sort1x4(out[i], in[i]);
+
+		sprintf(msg, "vsort16x4 output X_%d", i); printf_ptr(msg, out[i], 4);
 	}
 }
 
@@ -212,7 +216,7 @@ void orig_merge_sort_merge(int *output, int *input, int length)
     list1 += 4;
     list2 += 4;
 
-    merge4(x, y);
+    merge2x4(x, y);
     
 		//_mm_storeu_ps(output, x);
 			output[0] = x[0];	output[1] = x[1]; output[2] = x[2]; output[3] = x[3];
@@ -224,7 +228,7 @@ void orig_merge_sort_merge(int *output, int *input, int length)
 							x[0] = list1[0]; x[1] = list1[1]; x[2] = list1[2]; x[3] = list1[3];
 
             list1 += 4;
-            merge4(x, y);
+            merge2x4(x, y);
   
 	          //_mm_storeu_ps(output, x);
 							output[0] = x[0];	output[1] = x[1]; output[2] = x[2]; output[3] = x[3];
@@ -238,7 +242,7 @@ void orig_merge_sort_merge(int *output, int *input, int length)
 							x[0] = list2[0]; x[1] = list2[1]; x[2] = list2[2]; x[3] = list2[3];
 
             list2 += 4;
-            merge4(x, y);
+            merge2x4(x, y);
 
             //_mm_storeu_ps(output, x);
 							output[0] = x[0];	output[1] = x[1]; output[2] = x[2]; output[3] = x[3];
@@ -257,7 +261,7 @@ nomore_in_list1:
 					x[0] = list2[0]; x[1] = list2[1]; x[2] = list2[2]; x[3] = list2[3];
 
         list2 += 4;
-        merge4(x, y);
+        merge2x4(x, y);
 
         //_mm_storeu_ps(output, x);
 					output[0] = x[0];	output[1] = x[1]; output[2] = x[2]; output[3] = x[3];
@@ -273,7 +277,7 @@ nomore_in_list2:
 					x[0] = list1[0]; x[1] = list1[1]; x[2] = list1[2]; x[3] = list1[3];
 
         list1 += 4;
-        merge4(x, y);
+        merge2x4(x, y);
 
         //_mm_storeu_ps(output, x);
 					output[0] = x[0];	output[1] = x[1]; output[2] = x[2]; output[3] = x[3];

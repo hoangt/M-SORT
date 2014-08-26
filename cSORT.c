@@ -7,7 +7,7 @@ void write2lm(int *out, int *in)
 }
 
 //==========================================================================================================
-void sort4(int *in)
+void sort1x4(int *out, int *in)
 {
 		int *x0 = in;
 		int *x1 = in+1;
@@ -22,14 +22,14 @@ void sort4(int *in)
 		int m1_1 = m0_2 >= m0_0 ? m0_2 : m0_0;
 		int m1_2 = m0_3 >= m0_1 ? m0_1 : m0_3;
 
-		*x0 = m0_2 >= m0_0 ? m0_0 : m0_2;
-		*x1 = m1_2 >= m1_1 ? m1_1 : m1_2;
-		*x2 = m1_2 >= m1_1 ? m1_2 : m1_1;
-		*x3 = m0_3 >= m0_1 ? m0_3 : m0_1;
+		*(out  ) = m0_2 >= m0_0 ? m0_0 : m0_2;
+		*(out+1) = m1_2 >= m1_1 ? m1_1 : m1_2;
+		*(out+2) = m1_2 >= m1_1 ? m1_2 : m1_1;
+		*(out+3) = m0_3 >= m0_1 ? m0_3 : m0_1;
 }
 
 //==========================================================================================================
-void vsort16(int *in[], int N)
+void vsort16x4(int *out[], int *in[], int N)
 {
 	int i;
 	int *tmp;
@@ -37,36 +37,17 @@ void vsort16(int *in[], int N)
 	assert(N >=0 && N <=16);
 
 	for (i=0; i<N; i++)
-		sort4(in[i]);
+		sort1x4(in[i], out[i]);
 }
 
 //==========================================================================================================
-void sort4x4(int *in[])						// sort 4x4 elements in parallel
+void sort4x4(int *out[], int *in[])						// sort 4x4 elements in parallel
 {
-		vsort16(in, 4);
+		vsort16x4(in, out, 4);
 }
 
 //==========================================================================================================
-void merge4(int *x, int *y)
-{
-		int m[4], n[4];
-
-    m[0] = x[0] >= y[0] ? y[0] : x[0]; m[1] = x[0] >= y[0] ? x[0] : y[0];
-    m[2] = x[2] >= y[2] ? y[2] : x[2]; m[3] = x[2] >= y[2] ? x[2] : y[2];
-    n[0] = x[1] >= y[1] ? y[1] : x[1]; n[1] = x[1] >= y[1] ? x[1] : y[1];
-    n[2] = x[3] >= y[3] ? y[3] : x[3]; n[3] = x[3] >= y[3] ? x[3] : y[3];
-
-		x[1] = m[2] >= m[1] ? m[1] : m[2]; x[2] = m[2] >= m[1] ? m[2] : m[1]; x[3] = m[3];					
-		y[1] = n[2] >= n[1] ? n[1] : n[2]; y[2] = n[2] >= n[1] ? n[2] : n[1]; y[3] = n[3];		
-
-    m[1] = y[0] >= x[1] ? x[1] : y[0]; m[2] = y[0] >= x[1] ? y[0] : x[1]; m[3] = y[1] >= x[2] ? x[2] : y[1];
-    n[0] = y[1] >= x[2] ? y[1] : x[2]; n[1] = y[2] >= x[3] ? x[3] : y[2]; n[2] = y[2] >= x[3] ? y[2] : x[3];
-
-    x[0] = m[0]; x[1] = m[1];	x[2] = m[2]; x[3] = m[3];
-		y[0] = n[0]; y[1] = n[1]; y[2] = n[2]; y[0] = n[0];					           
-}
-
-void vmerge16(int *x, int *y, int N)
+void merge2x4(int *x, int *y)
 {
 		int m[4], n[4];
 
@@ -86,7 +67,22 @@ void vmerge16(int *x, int *y, int N)
 }
 
 //==========================================================================================================
-void bitonic_sort_2x8keys(int *out, int* in)				// TUNG: Kernel of sort (accelerator)
+void merge4x4(int *x0, int *x1, int *x2, int *x3)
+{
+
+}
+
+void vmerge16x4(int *out, int *in[], int N)
+{
+	assert(N >=0 && N <=16);
+
+	int i;
+	for (i=0; i<N; i++)
+		merge2x4(in[i], out[i]);					           
+}
+
+//==========================================================================================================
+void bisort2x8(int *out, int* in)				// TUNG: Kernel of sort (accelerator)
 {
 
     int *x[4];
@@ -100,14 +96,13 @@ void bitonic_sort_2x8keys(int *out, int* in)				// TUNG: Kernel of sort (acceler
     //printf_ptr("x0: ", x0, 4); printf_ptr("x1: ", x1, 4); printf_ptr("x2: ", x2, 4); printf_ptr("x3: ", x3, 4); 
 		//puts("--------------------------------------------\n");
 
-    //vsort16(x, 4);
-		sort4x4(x);
+		sort4x4(x, x);
     //puts("sort4x4 OUTPUT:");
     //printf_ptr("x0: ", x0, 4); printf_ptr("x1: ", x1, 4); printf_ptr("x2: ", x2, 4); printf_ptr("x3: ", x3, 4);
 		//puts("--------------------------------------------\n");
 
-    merge4(x[0], x[1]);
-    merge4(x[2], x[3]);
+    merge2x4(x[0], x[1]);
+    merge2x4(x[2], x[3]);
     //puts("merge4 OUTPUT:");
 		//printf_ptr("x0: ", x0, 4); printf_ptr("x1: ", x1, 4); printf_ptr("x2: ", x2, 4); printf_ptr("x3: ", x3, 4);
 		//puts("--------------------------------------------\n");
@@ -120,7 +115,7 @@ void merge_sort_rev(int *output, int *input, int length)
 {
     int half = length >> 1;
     if (length == 16){
-        bitonic_sort_2x8keys(input, input);
+        bisort2x8(input, input);
     } else {
         merge_sort(output,        input,        half);
         merge_sort(output + half, input + half, half);
@@ -142,11 +137,11 @@ void merge_sort_merge(int *output, int *input, int length)
     halfptr 		= input + half;
     sentinelptr = input + length;
 
-    int *list1 = input;
-    int *list2 = halfptr;
-		int *y 		 = list2;
+    int *list1  = input;
+    int *list2  = halfptr;
+		int *mebuf  = list2;
 		
-    merge4(list1, y);
+    merge2x4(list1, mebuf);
     
 		write2lm(output, list1);
 
@@ -159,36 +154,40 @@ void merge_sort_merge(int *output, int *input, int length)
 			if (*list1 < *list2) 
 			{
 					printf("DEBUG --- *list1 < *list2\n");
-		      merge4(list1, y); write2lm(output, list1);
+		      merge2x4(list1, mebuf); write2lm(output, list1);
   	      list1 += 4; output += 4;
 
   	      if (list1 >= halfptr)
 					{
-							int N=(sentinelptr-list2) >> 2;
+
+							int N=(sentinelptr-list2) >> 2;		// do 4x4 merge
 					    for (i=0; i < N; i++)
 							{
-					        merge4(list2, y); write2lm(output, list2);
+					        merge2x4(list2, mebuf); write2lm(output, list2);
 					        list2 += 4; output += 4;
 						  }
-							write2lm(output, y);
+							write2lm(output, mebuf);
+							
 							return;
 					}
 
 			//===============================
       } else {
 					printf("DEBUG --- *list1 >= *list2\n");
-  	      merge4(list2, y); write2lm(output, list2);
+  	      merge2x4(list2, mebuf); write2lm(output, list2);
   	      list2 += 4; output += 4;
 
   	      if (list2 >= sentinelptr)
 					{
 							int N=(halfptr-list1) >> 2;
+
 					    for (i=0; i < N; i++)
 							{
-					        merge4(list1, y); write2lm(output, list1);
+					        merge2x4(list1, mebuf); write2lm(output, list1);
 					        list1 += 4; output += 4;
 							}
-							write2lm(output, y);
+							write2lm(output, mebuf);
+
 							return;				
 			    }
       }
@@ -203,7 +202,7 @@ void merge_sort(int *output, int *input, int length)
 {
     int half = length >> 1;
     if (length == 16){
-        bitonic_sort_2x8keys(output, input);
+        bisort2x8(output, input);
     } else {
         merge_sort_rev(output,        input,        half);
         merge_sort_rev(output + half, input + half, half);
